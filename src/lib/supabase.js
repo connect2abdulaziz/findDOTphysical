@@ -32,36 +32,55 @@ export async function getExaminers({ city, search, walkIns, openWeekends } = {})
   return (data || []).sort((a, b) => (tierOrder[a.tier] ?? 3) - (tierOrder[b.tier] ?? 3))
 }
 
+// ─── Admin API (service role server-side — bypasses RLS) ─────────────────────
+
+async function adminRequest(adminPassword, method, { body, id } = {}) {
+  const url = id ? `/api/admin-examiners?id=${encodeURIComponent(id)}` : '/api/admin-examiners'
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-password': adminPassword,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  if (res.status === 204) return null
+
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      'Admin API not reachable. Restart with `npm run dev` and ensure SUPABASE_SERVICE_ROLE_KEY is in .env'
+    )
+  }
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`)
+
+  if (method === 'GET' && !Array.isArray(data)) {
+    throw new Error('Admin API returned invalid data')
+  }
+
+  return data
+}
+
 /** Fetch all examiners (admin) */
-export async function getAllExaminers() {
-  const { data, error } = await supabase
-    .from('examiners')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data || []
+export async function getAllExaminers(adminPassword) {
+  const data = await adminRequest(adminPassword, 'GET')
+  return Array.isArray(data) ? data : []
 }
 
 /** Add a new examiner */
-export async function addExaminer(examiner) {
-  const { data, error } = await supabase.from('examiners').insert([examiner]).select()
-  if (error) throw error
-  return data[0]
+export async function addExaminer(adminPassword, examiner) {
+  return adminRequest(adminPassword, 'POST', { body: examiner })
 }
 
 /** Update an examiner */
-export async function updateExaminer(id, updates) {
-  const { data, error } = await supabase
-    .from('examiners')
-    .update(updates)
-    .eq('id', id)
-    .select()
-  if (error) throw error
-  return data[0]
+export async function updateExaminer(adminPassword, id, updates) {
+  return adminRequest(adminPassword, 'PATCH', { body: { id, ...updates } })
 }
 
 /** Delete an examiner */
-export async function deleteExaminer(id) {
-  const { error } = await supabase.from('examiners').delete().eq('id', id)
-  if (error) throw error
+export async function deleteExaminer(adminPassword, id) {
+  await adminRequest(adminPassword, 'DELETE', { id })
 }

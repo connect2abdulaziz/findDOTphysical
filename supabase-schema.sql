@@ -34,8 +34,9 @@ create policy "Public read active examiners"
   on public.examiners for select
   using (active = true);
 
--- Only service role (server-side) can insert/update/delete
--- (your Vercel API functions use SUPABASE_SERVICE_ROLE_KEY)
+-- Only service role (server-side) can insert/update/delete.
+-- The admin panel uses /api/admin-examiners (Vercel) with SUPABASE_SERVICE_ROLE_KEY.
+-- Do NOT add public UPDATE policies on the anon key — that would let anyone edit listings.
 
 -- ─── Sample Data — 5 seed rows ────────────────────────────────────────────────
 insert into public.examiners

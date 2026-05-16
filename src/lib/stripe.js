@@ -20,8 +20,13 @@ export async function redirectToCheckout({ tier, examinerId }) {
     body: JSON.stringify({ priceId, examinerId, tier }),
   })
 
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    throw new Error('Checkout API not reachable. Restart `npm run dev` after pulling latest changes.')
+  }
+
   if (!res.ok) {
-    const err = await res.json()
+    const err = await res.json().catch(() => ({}))
     throw new Error(err.message || 'Failed to create checkout session')
   }
 

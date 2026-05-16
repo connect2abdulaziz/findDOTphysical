@@ -31,10 +31,20 @@ export default function AdminPage() {
 
   async function load() {
     try {
-      const data = await getAllExaminers()
-      setExaminers(data)
+      const data = await getAllExaminers(pw)
+      setExaminers(Array.isArray(data) ? data : [])
     } catch (err) {
       setMsg('Load error: ' + err.message)
+    }
+  }
+
+  async function quickUpdate(id, updates) {
+    try {
+      await updateExaminer(pw, id, updates)
+      await load()
+    } catch (err) {
+      setMsg('❌ Update error: ' + err.message)
+      await load()
     }
   }
 
@@ -60,11 +70,11 @@ export default function AdminPage() {
       }
 
       if (editing.id) {
-        await updateExaminer(editing.id, payload)
+        await updateExaminer(pw, editing.id, payload)
         setMsg('✅ Examiner updated.')
       } else {
         delete payload.id
-        await addExaminer(payload)
+        await addExaminer(pw, payload)
         setMsg('✅ Examiner added.')
       }
 
@@ -80,7 +90,7 @@ export default function AdminPage() {
   async function handleDelete(id, name) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
     try {
-      await deleteExaminer(id)
+      await deleteExaminer(pw, id)
       setMsg(`✅ Deleted ${name}.`)
       await load()
     } catch (err) {
@@ -129,10 +139,7 @@ export default function AdminPage() {
               <td>
                 <select
                   value={ex.tier}
-                  onChange={async (e) => {
-                    await updateExaminer(ex.id, { tier: e.target.value })
-                    await load()
-                  }}
+                  onChange={(e) => quickUpdate(ex.id, { tier: e.target.value })}
                   className="tier-select"
                 >
                   <option value="free">Free</option>
@@ -144,20 +151,14 @@ export default function AdminPage() {
                 <input
                   type="checkbox"
                   checked={ex.active}
-                  onChange={async (e) => {
-                    await updateExaminer(ex.id, { active: e.target.checked })
-                    await load()
-                  }}
+                  onChange={(e) => quickUpdate(ex.id, { active: e.target.checked })}
                 />
               </td>
               <td>
                 <input
                   type="checkbox"
                   checked={ex.verified}
-                  onChange={async (e) => {
-                    await updateExaminer(ex.id, { verified: e.target.checked })
-                    await load()
-                  }}
+                  onChange={(e) => quickUpdate(ex.id, { verified: e.target.checked })}
                 />
               </td>
               <td>
