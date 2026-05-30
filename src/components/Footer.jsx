@@ -29,7 +29,6 @@ export default function Footer() {
         <div className="footer-links">
           <p className="footer-heading">Examiners</p>
           <Link to="/get-listed" className="footer-link">Get Listed Free</Link>
-          <Link to="/admin" className="footer-link">Admin</Link>
         </div>
       </div>
 
